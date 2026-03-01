@@ -1,0 +1,50 @@
+-- Create the dataset ending with Thammaya in the US East region
+CREATE SCHEMA IF NOT EXISTS Assurant_UK_Thammaya
+  OPTIONS (
+    location = 'us-east1', 
+    description = 'Dataset for Assurant UK GECX Chatbot Orchestration and Analytics'
+  );
+
+  -- Table A: Customer Profiles (The Golden Record)
+CREATE TABLE IF NOT EXISTS Assurant_UK_Thammaya.customer_profiles (
+    customer_id STRING NOT NULL OPTIONS(description="Primary Key: Unique customer identifier"),
+    first_name STRING NOT NULL,
+    last_name STRING NOT NULL,
+    dob DATE NOT NULL OPTIONS(description="Date of birth for authentication"),
+    email STRING NOT NULL,
+    phone_number STRING NOT NULL OPTIONS(description="E.164 format for SMS OTP"),
+    postcode STRING NOT NULL OPTIONS(description="UK Postcode for retail partner matching")
+);
+
+-- Table B: Policies and Devices
+CREATE TABLE IF NOT EXISTS Assurant_UK_Thammaya.policies_and_devices (
+    policy_id STRING NOT NULL OPTIONS(description="Primary Key: Unique policy identifier"),
+    customer_id STRING NOT NULL OPTIONS(description="Foreign Key: Maps to customer_profiles"),
+    device_make STRING NOT NULL OPTIONS(description="e.g., Apple, Samsung"),
+    device_model STRING NOT NULL OPTIONS(description="e.g., iPhone 15 Pro"),
+    imei STRING NOT NULL OPTIONS(description="15-digit device identifier"),
+    status STRING NOT NULL OPTIONS(description="ACTIVE, CANCELLED, PENDING_ACTIVATION"),
+    monthly_premium FLOAT64 NOT NULL,
+    start_date TIMESTAMP NOT NULL
+);
+
+-- Table C: Claims Ledger
+CREATE TABLE IF NOT EXISTS Assurant_UK_Thammaya.claims_ledger (
+    claim_id STRING NOT NULL OPTIONS(description="Primary Key: Unique claim identifier"),
+    policy_id STRING NOT NULL OPTIONS(description="Foreign Key: Maps to policies_and_devices"),
+    claim_type STRING NOT NULL OPTIONS(description="DAMAGE, LOST, or STOLEN"),
+    incident_timestamp TIMESTAMP NOT NULL,
+    crime_reference_number STRING OPTIONS(description="NULLABLE: Only required for STOLEN claims"),
+    excess_fee_paid BOOL NOT NULL OPTIONS(description="TRUE if deductible is paid"),
+    resolution_status STRING NOT NULL OPTIONS(description="e.g., REPAIR_AUTH_ISSUED, REPLACEMENT_DISPATCHED")
+);
+
+-- Table D: GECX Conversational Analytics
+CREATE TABLE IF NOT EXISTS Assurant_UK_Thammaya.gecx_conversational_analytics (
+    session_id STRING NOT NULL OPTIONS(description="Dialogflow CX Session ID"),
+    customer_id STRING OPTIONS(description="NULLABLE: Populated post-authentication"),
+    primary_intent STRING NOT NULL OPTIONS(description="e.g., intent.claim.stolen"),
+    containment_status BOOL NOT NULL OPTIONS(description="TRUE if bot resolved, FALSE if escalated to agent"),
+    escalation_reason STRING OPTIONS(description="NULLABLE: e.g., MAX_AUTH_FAILURES, FRAUD_VELOCITY"),
+    session_duration_sec INT64 NOT NULL OPTIONS(description="Total handle time for the bot")
+);
